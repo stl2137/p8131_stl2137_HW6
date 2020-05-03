@@ -1,0 +1,29 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(nlme)
+```
+
+## Problem 2
+
+```{r}
+dental <- read.table("./HW6-dental.txt", header = TRUE) %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    gender = as.factor(gender)
+  )
+```
+
+### Part A: Make a spaghetti plot to infer how distance is affected by age and gender.
+
+```{r}
+ggplot(dental, 
+       aes(age, distance, group = child, col = gender)) +
+  geom_line()
+```
+
