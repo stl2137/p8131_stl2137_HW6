@@ -9,7 +9,7 @@ library(tidyverse)
 library(nlme)
 ```
 
-## Problem 2
+# Problem 2
 
 ```{r}
 dental <- read.table("./HW6-dental.txt", header = TRUE) %>% 
@@ -19,11 +19,111 @@ dental <- read.table("./HW6-dental.txt", header = TRUE) %>%
   )
 ```
 
-### Part A: Make a spaghetti plot to infer how distance is affected by age and gender.
+## Part A: Make a spaghetti plot to infer how distance is affected by age and gender.
 
 ```{r}
 ggplot(dental, 
        aes(age, distance, group = child, col = gender)) +
   geom_line()
+```
+
+## Part B: On paper
+
+## Part C: Consider the following marginal model: E(Yij)=β0 +β1 ∗sexi +β2 ∗ageij V ar(Yi) = Σ. Fit a model with (a) compound symmetry covariance, (b) exponential co- variance, (c) autoregressive covariance. Compare the coefficient parameter estimates and the covariance estimates.
+
+### We assume that variances of the response are not constant across age.
+
+```{r}
+# Compound Symmetry Covariance
+
+comsym <- gls(distance ~ gender + age, dental, correlation = corCompSymm(form = ~ 1 | child), 
+              weights = varIdent(form = ~ 1 | age), method = "REML")
+
+summary(comsym)
+
+# Correlation:
+temp_comsym <- corMatrix(comsym$modelStruct$corStruct)[[1]]
+
+# Ratio Between the Variances
+ratio_comsym <- 1/varWeights(comsym$modelStruct)[1:4]
+
+# Covariance:
+cov_1_comsym <- diag(ratio) %*% temp %*% diag(ratio) * comsym$sigma^2
+```
+
+```{r}
+# Exponential Covariance
+expo <- gls(distance ~ gender + age, dental, correlation = corExp(form = ~ 1 | child),
+            weights = varIdent(form = ~ 1 | age), method = "REML")
+
+summary(expo)
+
+#correlation:
+temp_expo <- corMatrix(expo$modelStruct$corStruct)[[1]]
+
+# ratio between the variances
+ratio_expo <- 1/varWeights(expo$modelStruct)[1:4]
+
+# covariance:
+cov_2_expo <- diag(ratio_expo) %*% temp_expo %*% diag(ratio_expo) * expo$sigma^2
+```
+
+```{r}
+# Autoregressive Covariance
+auto1 <- gls(distance ~ gender + age, dental, correlation = corAR1(form = ~ 1 | child), weights = varIdent(form = ~1 | age), method = "REML")
+
+summary(auto1)
+
+#correlation:
+temp_auto <- corMatrix(auto1$modelStruct$corStruct)[[1]]
+
+# ratio between the variances
+ratio_auto <- 1/varWeights(auto1$modelStruct)[1:4]
+
+# covariance:
+cov_3_auto <- diag(ratio_auto) %*% temp_auto %*% diag(ratio_auto) * auto1$sigma^2
+result1 <- rbind(round(comsym$coefficients,2),
+round(expo$coefficients,2),
+round(auto1$coefficients,2))
+rownames(result1) <- c("Compound symmetry", "Exponential", "Autoregressive")
+```
+
+### Assume that variance of response is constant across age
+
+```{r}
+# Compound Symmetry Covariance
+
+comsym <- gls(distance ~ gender + age, dental, correlation = corCompSymm(form = ~ 1 | child), method = "REML")
+
+summary(comsym)
+
+# covariance:
+cov_1a <- comsym$sigma^2*corMatrix(comsym$modelStruct$corStruct)[[1]]
+```
+
+```{r}
+# Exponential Covariance
+expo <- gls(distance ~ gender + age, dental, correlation = corExp(form = ~1 | child), method = "REML")
+            
+summary(expo)
+corMatrix(expo$modelStruct$corStruct)[[1]]
+# covariance:
+cov_2a <- expo$sigma^2*corMatrix(expo$modelStruct$corStruct)[[1]]
+```
+
+```{r}
+# Autoregressive Covariance
+
+auto1 <- gls(distance ~ gender + age, dental, correlation = corAR1(form = ~ 1 | child), method = "REML")
+
+summary(auto1)
+corMatrix(auto1$modelStruct$corStruct)[[1]]
+
+# covariance:
+cov_3a <- auto1$sigma^2*corMatrix(auto1$modelStruct$corStruct)[[1]]
+result2 <- rbind(round(comsym$coefficients,2),
+round(expo$coefficients,2),
+round(auto1$coefficients,2))
+rownames(result1) <- c("Compound symmetry", "Exponential", "Autoregressive")
 ```
 
